@@ -54,7 +54,6 @@ function client( io ) {
   this.keeper = innkeeper( { io: io } );
   this.room = null;
   this.isAllInitialized = false;
-  this.startedPlaying = false;
 }
 
 var p = client.prototype = new EventEmitter();
@@ -68,7 +67,6 @@ p.reserve = function() {
     
     return room.setRoomData( {
 
-      paused: true,
       startTime: -1
     });
   }.bind( this ))
@@ -100,6 +98,39 @@ p.enterKey = function( key ) {
   }.bind( this ));
 };
 
+p.getHasStartedPlaying = function() {
+
+  var room = this.room;
+
+  return room && room.roomData.startTime !== undefined && room.roomData.startTime != -1;
+};
+
+p.getIsPaused = function() {
+
+  var room = this.room;
+  return !room || room.roomData.pauseTime != -1; 
+};
+
+p.getTime = function() {
+
+  var room = this.room;
+  var roomData = room.roomData;
+  var time;
+
+  if( roomData.startTime && roomData.startTime > -1 ) {
+    time = this.getServerTime() - roomData.startTime;
+  } else {
+    time = 0;
+  }
+
+  return time;
+};
+
+p.getServerTime = function() {
+
+  return ntp.serverTime();
+};
+
 p.setIsInitialized = function() {
 
   var room = this.room;
@@ -116,27 +147,36 @@ p.setIsInitialized = function() {
 p.play = function() {
 
   var room = this.room;
+  var roomData = room.roomData;
+  var pauseValue = roomData.pauseTime;
+  var pauseTime = typeof pauseValue == 'string' ? parseInt( pauseValue ) : pauseValue;
+  var startTime = roomData.startTime;
+  var startOffset;
 
-  if( room && room.roomData.paused ) {
+  if( this.getIsPaused() ) {
 
-    if( !this.startedPlaying ) {
-
-      this.startedPlaying = true;
+    if( !this.getHasStartedPlaying() ) {
 
       room
       .setVar( 'startTime', ntp.serverTime() )
       .then( function() {
 
-        return room.setVar( 'paused', false );
+        return room.setVar( 'pauseTime', -1 );
       });
     } else {
 
+      startOffset = ( ntp.serverTime() - pauseTime );
+
       room
-      .setVar( 'paused', false );
+      .setVar( 'startTime', startTime + startOffset )
+      .then( function() {
+
+        return room.setVar( 'pauseTime', -1 );
+      });
     }
   } else {
 
-    doPlay.call( this );
+    emitPlay.call( this );
   }
 };
 
@@ -144,13 +184,13 @@ p.pause = function() {
 
   var room = this.room;
 
-  if( room && !room.roomData.paused ) {
+  if( !this.getIsPaused() ) {
 
     room
-    .setVar( 'paused', true );
+    .setVar( 'pauseTime', ntp.serverTime() );
   } else {
 
-    doPause.call( this );
+    emitPause.call( this );
   }
 };
 
@@ -163,19 +203,19 @@ p.seek = function( time ) {
     room.setVar( 'startTime', ntp.serverTime() - time );
   } else {
 
-    doSeek.call( this, time );
+    emitSeek.call( this, time );
   }
 };
 
-function doPlay() {
+function emitPlay() {
   this.emit( 'play' );
 }
 
-function doPause() {
+function emitPause() {
   this.emit( 'pause' );
 }
 
-function doSeek( time ) {
+function emitSeek( time ) {
 
   this.emit( 'seek', time );
 }
@@ -207,7 +247,7 @@ function updateRoom( room ) {
 
   this.room = room;
 
-  this.room.on( 'user', function( info ) {
+  room.on( 'user', function( info ) {
 
     if( info.action == 'join' ) {
 
@@ -219,7 +259,7 @@ function updateRoom( room ) {
     this.emit( 'user', info );
   }.bind( this ));
 
-  this.room.on( 'data', function( data, info ) {
+  room.on( 'data', function( data, info ) {
 
     checkAllInitialized.call( this );
 
@@ -228,34 +268,24 @@ function updateRoom( room ) {
       // initialized a user
       switch( info.key ) {
 
-        case 'paused':
-          var isPaused = typeof info.value == 'string' ? info.value == 'true' : info.value;
-
-          if( this.startedPlaying ) {
-
-            if( isPaused ) {
-
-              doPause.call( this );
-            } else {
-
-              doPlay.call( this );
-            }
-          } else {
-
-            if( !isPaused ) {
-
-              this.startedPlaying = true;
-
-              doPlay.call( this );
-            }
-          }
-        break;
-
         case 'startTime':
 
           var startTime = info.value;
 
-          doSeek.call( this, ntp.serverTime() - startTime );
+          emitSeek.call( this, ntp.serverTime() - startTime );
+        break;
+
+        case 'pauseTime':
+          var pauseTime = typeof info.value == 'string' ? parseInt( info.value ) : info.value;
+          var isPaused = pauseTime != -1;
+
+          if( isPaused ) {
+
+            emitPause.call( this );
+          } else {
+
+            emitPlay.call( this );
+          }
         break;
       }
     }
