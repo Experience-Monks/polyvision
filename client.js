@@ -21,6 +21,8 @@ module.exports = function( io ) {
 
       var startTime = Date.now();
 
+      console.log( 'SERVER TIME', ntp.serverTime() );
+
       var checkTime = function() {
 
         isInitialized = io.id &&
@@ -131,6 +133,17 @@ p.getServerTime = function() {
   return ntp.serverTime();
 };
 
+p.setVar = function( key, value ) {
+
+  return this.room
+  .setVar( key, value );
+};
+
+p.getVar = function( key ) {
+
+  return this.room.roomData[ key ];
+};
+
 p.setIsInitialized = function() {
 
   var room = this.room;
@@ -147,10 +160,9 @@ p.setIsInitialized = function() {
 p.play = function() {
 
   var room = this.room;
-  var roomData = room.roomData;
-  var pauseValue = roomData.pauseTime;
+  var pauseValue = this.getVar( 'pauseTime' );
   var pauseTime = typeof pauseValue == 'string' ? parseInt( pauseValue ) : pauseValue;
-  var startTime = roomData.startTime;
+  var startTime = this.getVar( 'startTime' );
   var startOffset;
 
   if( this.getIsPaused() ) {
