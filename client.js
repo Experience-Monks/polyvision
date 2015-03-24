@@ -79,7 +79,12 @@ p.reserve = function() {
     console.log('polyvision set startTime');
 
     return this;
-  }.bind( this ));
+  }.bind( this ))
+  .catch(function(err) {
+
+    console.log('polyscreen reserve err');
+    console.log(err);
+  });
 };
 
 p.enter = function( id ) {
