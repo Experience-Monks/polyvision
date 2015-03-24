@@ -65,6 +65,8 @@ p.reserve = function() {
   return this.keeper.reserve()
   .then( function( room ) {
 
+    console.log('polyvision got the room');
+
     updateRoom.call( this, room );
     
     return room.setRoomData( {
@@ -73,6 +75,8 @@ p.reserve = function() {
     });
   }.bind( this ))
   .then( function() {
+
+    console.log('polyvision set startTime');
 
     return this;
   }.bind( this ));
