@@ -4,6 +4,7 @@ var raf = require( 'raf' );
 var EventEmitter = require( 'events' ).EventEmitter;
 
 var SAMPLE_DURATION = 1000;
+var INITIAL_PLAY_OFF = 1000;
 
 var isInitialized = false;
 
@@ -20,8 +21,6 @@ module.exports = function( io ) {
     } else {
 
       var startTime = Date.now();
-
-      console.log( 'SERVER TIME', ntp.serverTime() );
 
       var checkTime = function() {
 
@@ -65,8 +64,6 @@ p.reserve = function() {
   return this.keeper.reserve()
   .then( function( room ) {
 
-    console.log('polyvision got the room');
-
     updateRoom.call( this, room );
     
     return room.setRoomData( {
@@ -76,13 +73,10 @@ p.reserve = function() {
   }.bind( this ))
   .then( function() {
 
-    console.log('polyvision set startTime');
-
     return this;
   }.bind( this ))
   .catch(function(err) {
 
-    console.log('polyscreen reserve err');
     console.log(err);
   });
 };
@@ -131,7 +125,7 @@ p.getTime = function() {
   if( roomData.startTime && roomData.startTime > -1 ) {
     time = this.getServerTime() - roomData.startTime;
   } else {
-    time = 0;
+    time = -1;
   }
 
   return time;
@@ -179,7 +173,7 @@ p.play = function() {
     if( !this.getHasStartedPlaying() ) {
 
       room
-      .setVar( 'startTime', ntp.serverTime() )
+      .setVar( 'startTime', ntp.serverTime() + INITIAL_PLAY_OFF )
       .then( function() {
 
         return room.setVar( 'pauseTime', -1 );
