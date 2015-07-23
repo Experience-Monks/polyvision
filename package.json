@@ -22,7 +22,7 @@
     "tape": "^3.5.0"
   },
   "scripts": {
-    "test": "node test.js"
+    "test": "node test"
   },
   "keywords": [
     "multi,user,time"

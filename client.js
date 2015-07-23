@@ -3,9 +3,11 @@ var innkeeper = require( 'innkeeper-socket.io/client' );
 var raf = require( 'raf' );
 var EventEmitter = require( 'events' ).EventEmitter;
 
+// duration to sample ntp time before we have an accurate value
 var SAMPLE_DURATION = 1000;
+// duration to delay play call
 var INITIAL_PLAY_OFF = 1000;
-
+// this boolean is for whether ntpm time has been initialize
 var isInitialized = false;
 
 // this will create a global for ntp
@@ -53,7 +55,7 @@ function client( io ) {
 
   this.io = io;
   this.keeper = innkeeper( { io: io } );
-  this.room = null;
+  this._room = null;
   this.isAllInitialized = false;
 }
 
@@ -74,11 +76,7 @@ p.reserve = function() {
   .then( function() {
 
     return this;
-  }.bind( this ))
-  .catch(function(err) {
-
-    console.log(err);
-  });
+  }.bind( this ));
 };
 
 p.enter = function( id ) {
@@ -105,21 +103,21 @@ p.enterKey = function( key ) {
 
 p.getHasStartedPlaying = function() {
 
-  var room = this.room;
+  var roomData = this.getRoomData();
 
-  return room && room.roomData.startTime !== undefined && room.roomData.startTime != -1;
+  return roomData.startTime !== undefined && roomData.startTime != -1;
 };
 
 p.getIsPaused = function() {
 
-  var room = this.room;
-  return !room || room.roomData.pauseTime != -1; 
+  var roomData = this.getRoomData();
+
+  return roomData.pauseTime != -1; 
 };
 
 p.getTime = function() {
 
-  var room = this.room;
-  var roomData = room.roomData;
+  var roomData = this.getRoomData();
   var time;
 
   if( roomData.startTime && roomData.startTime > -1 ) {
@@ -138,31 +136,56 @@ p.getServerTime = function() {
 
 p.setVar = function( key, value ) {
 
-  return this.room
+  return this.getRoom()
   .setVar( key, value );
 };
 
 p.getVar = function( key ) {
 
-  return this.room.roomData[ key ];
+  return this.getRoomData()[ key ];
+};
+
+p.getUsers = function() {
+
+  return this.getRoom().users;
+};
+
+p.getMyUserIdx = function() {
+
+  var users = this.getUsers();
+  var idx = -1;
+
+  for(var i = 0; i < users.length; i++) {
+    if(users[ i ] === this.io.id) {
+      idx = i;
+      break;
+    }
+  }
+
+  return idx;
+};
+
+p.getRoom = function() {
+  if(this._room) {
+    return this._room;
+  } else {
+    throw new Error('To perform this action you must be in a room first');
+  }
+};
+
+p.getRoomData = function() {
+
+  return this.getRoom().roomData;
 };
 
 p.setIsInitialized = function() {
 
-  var room = this.room;
-
-  if( room ) {
-
-    room.setVar( 'pv_init' + this.io.id, true );
-  } else {
-
-    throw new Error( 'You\'re not in a room' );
-  }
+  var room = this.getRoom().setVar( 'pv_init' + this.io.id, true );
 };
 
 p.play = function() {
 
-  var room = this.room;
+  var room = this.getRoom();
   var pauseValue = this.getVar( 'pauseTime' );
   var pauseTime = typeof pauseValue == 'string' ? parseInt( pauseValue ) : pauseValue;
   var startTime = this.getVar( 'startTime' );
@@ -197,7 +220,7 @@ p.play = function() {
 
 p.pause = function() {
 
-  var room = this.room;
+  var room = this.getRoom();
 
   if( !this.getIsPaused() ) {
 
@@ -211,7 +234,7 @@ p.pause = function() {
 
 p.seek = function( time ) {
 
-  var room = this.room;
+  var room = this.getRoom();
 
   if( room ) {
     
@@ -237,8 +260,8 @@ function emitSeek( time ) {
 
 function checkAllInitialized() {
 
-  var users = this.room.users;
-  var data = this.room.roomData;
+  var users = this.getUsers();
+  var data = this.getRoomData();
   var isAllInited = true;
 
   users.forEach( function( user ) {
@@ -260,7 +283,7 @@ function checkAllInitialized() {
 
 function updateRoom( room ) {
 
-  this.room = room;
+  this._room = room;
 
   room.on( 'user', function( info ) {
 
