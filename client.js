@@ -156,7 +156,10 @@ p.getMyUserIdx = function() {
   var idx = -1;
 
   for(var i = 0; i < users.length; i++) {
-    if(users[ i ] === this.io.id) {
+
+    // added in /# because it seems that socket.io-client adds /# to the id
+    // where on the backend socket.id does not have /#
+    if(users[ i ] === '/#' + this.io.id) {
       idx = i;
       break;
     }
@@ -180,7 +183,9 @@ p.getRoomData = function() {
 
 p.setIsInitialized = function() {
 
-  var room = this.getRoom().setVar( 'pv_init' + this.io.id, true );
+  // added in /# because it seems that socket.io-client adds /# to the id
+  // where on the backend socket.id does not have /#
+  var room = this.getRoom().setVar( 'pv_init/#' + this.io.id, true );
 };
 
 p.play = function() {
