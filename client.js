@@ -271,7 +271,7 @@ function checkAllInitialized() {
 
   users.forEach( function( user ) {
 
-    isAllInited = data[ 'pv_init' + user ] && isAllInited;
+    isAllInited = Boolean(data[ 'pv_init/#' + user ]) && isAllInited;
   });
 
   if( this.isAllInitialized !== isAllInited ) {
