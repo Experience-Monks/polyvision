@@ -157,9 +157,7 @@ p.getMyUserIdx = function() {
 
   for(var i = 0; i < users.length; i++) {
 
-    // added in /# because it seems that socket.io-client adds /# to the id
-    // where on the backend socket.id does not have /#
-    if(users[ i ] === '/#' + this.io.id) {
+    if(users[ i ] === this.io.id) {
       idx = i;
       break;
     }
