@@ -181,9 +181,7 @@ p.getRoomData = function() {
 
 p.setIsInitialized = function() {
 
-  // added in /# because it seems that socket.io-client adds /# to the id
-  // where on the backend socket.id does not have /#
-  var room = this.getRoom().setVar( 'pv_init/#' + this.io.id, true );
+  var room = this.getRoom().setVar( 'pv_init' + this.io.id, true );
 };
 
 p.play = function() {
@@ -269,7 +267,7 @@ function checkAllInitialized() {
 
   users.forEach( function( user ) {
 
-    isAllInited = Boolean(data[ 'pv_init/#' + user ]) && isAllInited;
+    isAllInited = Boolean(data[ 'pv_init' + user ]) && isAllInited;
   });
 
   if( this.isAllInitialized !== isAllInited ) {
