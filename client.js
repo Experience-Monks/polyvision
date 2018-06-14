@@ -157,9 +157,9 @@ p.getMyUserIdx = function() {
 
   for(var i = 0; i < users.length; i++) {
 
-    // added in /# because it seems that socket.io-client adds /# to the id
-    // where on the backend socket.id does not have /#
-    if(users[ i ] === '/#' + this.io.id) {
+    // Removed /# as that issue was solved
+    // https://github.com/socketio/socket.io/pull/2509
+    if(users[ i ] === this.io.id) {
       idx = i;
       break;
     }
@@ -183,9 +183,9 @@ p.getRoomData = function() {
 
 p.setIsInitialized = function() {
 
-  // added in /# because it seems that socket.io-client adds /# to the id
-  // where on the backend socket.id does not have /#
-  var room = this.getRoom().setVar( 'pv_init/#' + this.io.id, true );
+  // Removed /# as that issue was solved
+  // https://github.com/socketio/socket.io/pull/2509
+  var room = this.getRoom().setVar( 'pv_init' + this.io.id, true );
 };
 
 p.play = function() {
@@ -271,7 +271,9 @@ function checkAllInitialized() {
 
   users.forEach( function( user ) {
 
-    isAllInited = Boolean(data[ 'pv_init/#' + user ]) && isAllInited;
+    // Removed /# as that issue was solved
+    // https://github.com/socketio/socket.io/pull/2509
+    isAllInited = Boolean(data[ 'pv_init' + user ]) && isAllInited;
   });
 
   if( this.isAllInitialized !== isAllInited ) {
