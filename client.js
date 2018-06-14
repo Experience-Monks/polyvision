@@ -157,6 +157,8 @@ p.getMyUserIdx = function() {
 
   for(var i = 0; i < users.length; i++) {
 
+    // Removed /# as that issue was solved
+    // https://github.com/socketio/socket.io/pull/2509
     if(users[ i ] === this.io.id) {
       idx = i;
       break;
@@ -181,6 +183,8 @@ p.getRoomData = function() {
 
 p.setIsInitialized = function() {
 
+  // Removed /# as that issue was solved
+  // https://github.com/socketio/socket.io/pull/2509
   var room = this.getRoom().setVar( 'pv_init' + this.io.id, true );
 };
 
@@ -267,6 +271,8 @@ function checkAllInitialized() {
 
   users.forEach( function( user ) {
 
+    // Removed /# as that issue was solved
+    // https://github.com/socketio/socket.io/pull/2509
     isAllInited = Boolean(data[ 'pv_init' + user ]) && isAllInited;
   });
 
